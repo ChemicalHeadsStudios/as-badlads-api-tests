@@ -16,6 +16,6 @@
     "assemblyscript": "^0.18.28"
   },
   "dependencies": {
-    "@chemicalheads/as-badlads": "^1.1.0"
+    "@chemicalheads/as-badlads": "^1.2.0"
   }
 }

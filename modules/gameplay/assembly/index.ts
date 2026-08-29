@@ -16,6 +16,7 @@ import {
     getLivingMaxHealth,
     setLivingHealth,
     getPlayerMoney,
+    addPlayerMoney,
     getPlayerCharacter,
 } from "@chemicalheads/as-badlads";
 import { TestReporter } from "../../../harness/assembly/harness";
@@ -73,6 +74,10 @@ export function onPluginStart(pluginId: i32): void {
     reporter.checkEqualI64("max health of dead handle is -1", getLivingMaxHealth(deadHandle), -1);
     reporter.checkEqualI64("money of dead handle is -1", getPlayerMoney(deadHandle), -1);
     reporter.check(
+        "money of dead handle cannot be changed",
+        !addPlayerMoney(deadHandle, 100),
+        "addPlayerMoney reported success for a handle that does not resolve");
+    reporter.check(
         "items of dead handle is empty",
         getPlayerItems(deadHandle, BadLadsContainerFlags.All).length == 0,
         "getPlayerItems returned entries for a handle that does not resolve");
@@ -117,6 +122,27 @@ export function onPluginTick(deltaTime: f64): void {
     // --- Money ---
     const money = getPlayerMoney(player);
     reporter.check("player money is readable", money >= 0, `getPlayerMoney returned ${money}`);
+
+    // A payment and an equal charge must leave the balance exactly where it started. Asserting only that the
+    // calls returned true would pass just as happily for a function that changes nothing at all.
+    const grant = 25;
+    reporter.check("payment is applied", addPlayerMoney(player, grant), "addPlayerMoney refused a payment");
+    reporter.checkEqualI64("payment lands in the balance", getPlayerMoney(player), money + grant);
+
+    reporter.check("charge is applied", addPlayerMoney(player, -grant), "addPlayerMoney refused an affordable charge");
+    reporter.checkEqualI64("charge restores the balance", getPlayerMoney(player), money);
+
+    // The half-applied charge is the failure that matters: a plugin taking payment it cannot collect hands over
+    // its goods for free, so an unaffordable charge has to be refused whole rather than draining what is there.
+    reporter.check(
+        "unaffordable charge is refused",
+        !addPlayerMoney(player, -(money + 1000)),
+        "addPlayerMoney allowed a charge larger than the balance");
+    reporter.checkEqualI64("refused charge leaves the balance untouched", getPlayerMoney(player), money);
+
+    // Zero is a no-op rather than an error; a plugin computing a delta should not have to special-case it.
+    reporter.check("zero delta succeeds", addPlayerMoney(player, 0), "addPlayerMoney rejected a zero delta");
+    reporter.checkEqualI64("zero delta changes nothing", getPlayerMoney(player), money);
 
     // --- Inventory observation and removal ---
     const beforeStacks = getPlayerItems(player, BadLadsContainerFlags.All);

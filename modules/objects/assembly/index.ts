@@ -7,6 +7,10 @@ import {
     getObjectBounds,
     isObjectValid,
     getPlayerCharacter,
+    getCharacterPlayerState,
+    rayTraceObject,
+    BadLadsCollisionChannel,
+    Vector,
     getGameTime,
 } from "@chemicalheads/as-badlads";
 import { TestReporter } from "../../../harness/assembly/harness";
@@ -53,6 +57,12 @@ export function onPluginStart(pluginId: i32): void {
         "enumerating None yields empty",
         none.length == 0,
         `expected 0 ids for None, got ${none.length}`);
+
+    // Walking the object graph from a handle that resolves to nothing must yield nothing, not a stray handle.
+    reporter.check(
+        "player state of a dead character handle is zero",
+        getCharacterPlayerState(0) == 0,
+        "getCharacterPlayerState invented a player state for a handle that does not resolve");
 }
 
 export function onPluginTick(deltaTime: f64): void {
@@ -130,6 +140,57 @@ export function onPluginTick(deltaTime: f64): void {
                 "character handle resolves",
                 isObjectValid(character),
                 "character handle from getPlayerCharacter did not resolve");
+
+            // The reverse direction has to land back on the player state we started from. Returning somebody
+            // else's would be worse than returning nothing, since every caller would believe it.
+            reporter.check(
+                "character resolves back to its own player state",
+                getCharacterPlayerState(character) == first,
+                "getCharacterPlayerState did not round trip back to the originating player state");
+
+            // Trace vertically through the character so there is certainly something in the way, and ignore the
+            // character itself: a trace reporting the object it was told to skip makes the parameter a lie.
+            const characterTransform = getObjectTransform(character);
+            if (characterTransform != null) {
+                const centre = characterTransform!.position;
+                const hit = rayTraceObject(
+                    new Vector(centre.x, centre.y, centre.z + 250.0),
+                    new Vector(centre.x, centre.y, centre.z - 250.0),
+                    BadLadsCollisionChannel.WorldStatic,
+                    character);
+
+                reporter.check(
+                    "trace never reports the object it was told to ignore",
+                    hit != character,
+                    "rayTraceObject returned the object passed as ignored");
+
+                // The ignore check above passes for free whenever a trace hits nothing, so the positive path is
+                // asserted separately: trace horizontally through the character and require it back. A function
+                // that always returned zero would satisfy every other assertion here.
+                //
+                // Traced on PlayerObjects rather than Hitscan because a character's capsule ignores Hitscan and
+                // only its mesh blocks it. The capsule is the collision that is always present, so this pins the
+                // host function rather than the collision setup of a skeletal mesh.
+                const through = rayTraceObject(
+                    new Vector(centre.x + 150.0, centre.y, centre.z),
+                    new Vector(centre.x - 150.0, centre.y, centre.z),
+                    BadLadsCollisionChannel.PlayerObjects,
+                    0);
+
+                if (reporter.check(
+                    "trace through a character returns a handle",
+                    through != 0,
+                    "rayTraceObject found nothing tracing through a live character on the PlayerObjects channel")) {
+                    reporter.check(
+                        "traced handle resolves",
+                        isObjectValid(through),
+                        "rayTraceObject returned a handle that did not resolve");
+                    reporter.check(
+                        "traced handle is the character that was hit",
+                        through == character,
+                        `expected the character handle, got ${through}`);
+                }
+            }
         }
 
         // A handle with a plausible serial but a category that does not match must be rejected rather than
