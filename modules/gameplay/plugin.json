@@ -1,0 +1,7 @@
+{
+  "Name": "APITest Gameplay",
+  "Author": "Chemical Heads",
+  "Version": "0.1.0",
+  "IntendedBadLadsVersion": "0.0.0",
+  "WasmPath": "plugin.wasm"
+}

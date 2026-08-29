@@ -1,0 +1,21 @@
+{
+  "name": "@chemicalheads/as-badlads-api-tests",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Conformance test plugins for the BadLads WASM host API.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ChemicalHeadsStudios/as-badlads-api-tests"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "build:deadlock": "node scripts/build.mjs --include-deadlock",
+    "clean": "node scripts/build.mjs --clean"
+  },
+  "devDependencies": {
+    "assemblyscript": "^0.18.28"
+  },
+  "dependencies": {
+    "@chemicalheads/as-badlads": "^1.1.0"
+  }
+}
