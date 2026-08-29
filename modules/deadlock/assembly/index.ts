@@ -30,12 +30,15 @@ export function onPluginTick(deltaTime: f64): void {
 
     postGlobalChatMessage(`[APITEST] deadlock/tick ${ticks} entering infinite loop`, Color.RED);
 
-    // Deliberately unbounded. `sink` exists so the loop body cannot be optimised away, and the loop reads a host
-    // value so it cannot be constant-folded either.
+    // Deliberately unbounded, and deliberately free of host calls: the host cannot interrupt a guest while it is
+    // inside a host function, so a loop that called out every iteration would test the call boundary rather than
+    // the watchdog. `sink` exists so the body cannot be optimised away.
+    let counter: i64 = 0;
     while (true) {
-        sink += getGameTime();
+        counter += 1;
+        sink += <f64>counter * 1.000001;
         if (sink < 0.0) {
-            // Never true; present only to keep the compiler from proving the loop infinite and reshaping it.
+            // Never true; present only to stop the compiler proving the loop infinite and reshaping it.
             break;
         }
     }

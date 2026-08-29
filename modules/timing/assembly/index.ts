@@ -31,11 +31,6 @@ let sawImplausibleDelta: bool = false;
 let reported: bool = false;
 
 export function onPluginStart(pluginId: i32): void {
-    // Raw probe, deliberately not through the reporter: this module has been reaching onPluginTick while
-    // producing no onPluginStart output at all, which would also be the symptom if the reporter global were
-    // not yet initialised when the host makes its first call.
-    postGlobalChatMessage("[APITEST] timing/probe onPluginStart entered", Color.WHITE);
-
     startGameTime = getGameTime();
     reporter.check("game time is positive at start", startGameTime > 0.0, `getGameTime returned ${startGameTime}`);
     lastGameTime = startGameTime;
@@ -43,12 +38,6 @@ export function onPluginStart(pluginId: i32): void {
 
 export function onPluginTick(deltaTime: f64): void {
     ticks += 1;
-
-    // Raw probe for the first few ticks, bypassing the reporter, so "the callback is not being invoked" and
-    // "the callback runs but its output is being swallowed" stop looking identical in the log.
-    if (ticks <= 3) {
-        postGlobalChatMessage(`[APITEST] timing/probe tick ${ticks} delta ${deltaTime}`, Color.WHITE);
-    }
 
     if (ticks == 1) {
         // The first tick has no previous sample to measure against. Zero is the correct answer; a large value means
