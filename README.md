@@ -37,6 +37,7 @@ harness treats a missing `DONE` as one rather than as a skip.
 | `strings` | String and buffer marshalling both directions, including empty results. |
 | `transform` | Transform round trip, through both the current and deprecated import names. |
 | `chat` | Chat message veto semantics and colour round trip. |
+| `timeofday` | `setTimeOfDay` rejects hours outside 0 to 24 and NaN and accepts a real hour; `getTimeOfDay` reads -1 without a sun and, with one, follows the hour that was set. |
 | `timing` | Tick delta sanity and monotonic game time. |
 | `gameplay` | Inventory reads, item removal, item definition lookup, health and player balance. |
 | `deadlock` | **Opt-in.** Spins forever to verify the execution watchdog. Not built by default. |
